@@ -10,6 +10,15 @@
 import random
 import time 
 import keyboard as kb
+from rich.console import Console
+
+console = Console()
+
+#style lookup for fan status
+status_style = {
+    "on": "bright_green", 
+    "off": "bright_red"
+}
 
 # function to simulate values and calculate dependents 
 def sim_values():
@@ -20,7 +29,7 @@ def sim_values():
     cp = 1 # unit of cp is cal/g/degree celcius
 
     while True:
-        # exit condition
+        # exit condition    
         # TODO: replace with event-based listener before deploying unattended
         if kb.is_pressed('q'):
             print("Q pressed, exiting...")
@@ -43,7 +52,8 @@ def sim_values():
         elif cwt <= 28:
             fan_status = "off"
 
-        print(f"CWT = {cwt:.2f}, Fan is {fan_status}, Heat load is {heat_load:.2f}, Approach to WBT is {approach_to_wbt:.2f}")
+        style = status_style[fan_status]
+        console.print(f"CWT = {cwt:.2f}, Fan is [{style}]{fan_status}[/{style}], Heat load is {heat_load:.2f}, Approach to WBT is {approach_to_wbt:.2f}")
 
         time.sleep(1)
 
