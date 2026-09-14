@@ -21,32 +21,10 @@ Python from [python.org/downloads](https://www.python.org/downloads/).
 **"Add python.exe to PATH"** — this is easy to miss and causes the same
 "not recognized" error afterward if skipped.
 
-## 2. Create a virtual environment (recommended)
 
-A virtual environment keeps this project's dependencies separate from
-anything else on your system. From the project folder, run:
+## 2. Install project dependencies
 
-```bash
-python -m venv .venv
-```
-
-Activate it:
-
-- **Windows (PowerShell):**
-  ```bash
-  .venv\Scripts\activate
-  ```
-- **Mac/Linux:**
-  ```bash
-  source .venv/bin/activate
-  ```
-
-You'll know it worked if you see `(.venv)` appear at the start of your
-terminal prompt.
-
-## 3. Install project dependencies
-
-With your virtual environment active, install everything listed in
+Install everything listed in
 `requirements.txt`:
 
 ```bash
@@ -58,7 +36,7 @@ This installs:
 - **`rich`** — styles and formats the dashboard's terminal output (colors,
   panels, layout)
 
-## 4. Run the dashboard
+## 3. Run the dashboard
 
 ```bash
 python run_dashboard.py
@@ -69,12 +47,8 @@ press **`Q`** at any time to exit.
 
 ## Troubleshooting
 
-- **"No module named 'keyboard'" or "No module named 'rich'"** — your virtual
-  environment likely isn't active, or dependencies weren't installed yet.
+- **"No module named 'keyboard'" or "No module named 'rich'"** — Dependencies weren't installed yet.
   Re-run Steps 2–3.
 - **`keyboard` requires admin/root privileges on Mac/Linux** — if you get a
   permissions error when pressing `Q`, try running the script with elevated
   privileges (e.g. `sudo python run_dashboard.py` on Mac/Linux).
-- **VS Code doesn't seem to use the right Python** — open the Command Palette
-  (`Ctrl+Shift+P`), search for **"Python: Select Interpreter"**, and choose
-  the one inside your project's `.venv` folder.
