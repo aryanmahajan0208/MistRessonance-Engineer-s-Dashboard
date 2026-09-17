@@ -18,7 +18,28 @@ from rich.align import Align
 
 console = Console()
 
-# function to accept user input as Y or N to start the simulation, with invalid input handling and recursion to restart
+"""
+Function to verify user input related to polling_rate.
+Values over 20 Hz are considered extreme and require an additional confirmation to run
+"""
+def verify_input(hz):
+    if hz > 20:
+        rprint("[bright_yellow]Extreme value selected, are you sure you wish to continue?[/bright_yellow] [[bright_green]Y[/bright_green]/[bright_red]N[/bright_red]]: ", end="")
+        user_confirm = input().lower().replace(" ", "")
+
+        if user_confirm == "n":
+            sys.exit(0)
+        elif user_confirm == "y":
+            pass
+        else:
+           rprint("[bright_yellow]Invalid input[/bright_yellow]") 
+           verify_input(hz)
+
+
+"""
+Function to accept user input as Y or N to start the simulation, with invalid input handling and 
+recursion to restart
+"""
 def start_program():
     rprint("Do you wish to start the simulation? [[bright_green]Y[/bright_green]/[bright_red]N[/bright_red]]:", end = "  ")
 
@@ -27,13 +48,17 @@ def start_program():
 
     # y -> start; n -> exit with error code 0; anything else, invalid input
     if start_event == 'y':
+        hz = int(input("Enter polling rate (in Hertz):"))
+        polling_rate = abs(1 / hz)
+        verify_input(hz)
+
         rprint("Press [magenta1]Q[/magenta1] to [magenta1]exit[/magenta1]")
 
         # 1 second buffer so user can read above message comfortably
         time.sleep(1)
 
         # run the simulation loop
-        cts.sim_values()
+        cts.sim_values(polling_rate)
     elif start_event == 'n':
         print("Exiting")
         sys.exit(0)
