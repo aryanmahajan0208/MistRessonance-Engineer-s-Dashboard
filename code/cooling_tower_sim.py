@@ -7,6 +7,7 @@
         from the simulated values
 """
 
+import filehandler as fh
 import random
 import time 
 import keyboard as kb
@@ -56,7 +57,7 @@ def generate_reading(cwt, hwt, wbt, flow_rate = 20, cp = 1, hwt_mu = 34, theta =
 
 
 # function to simulate values and calculate dependents 
-def sim_values(polling_rate = 1):
+def sim_values(polling_rate = 1, filename = "None"):
     # initialize cold water temp, hot water temp, wet bulb temp, fan_status, mass flow rate, specific heat
     cwt, hwt, wbt = 30, 34, 28
     fan_status = "on"
@@ -72,6 +73,9 @@ def sim_values(polling_rate = 1):
         cwt, hwt = reading["cwt"], reading["hwt"]
         fan_status = reading["fan_status"] or fan_status  # keep old status if None
         efficiency = reading["efficiency"]
+
+        if filename:
+            fh.log_reading(filename, reading)
 
         style = status_style[fan_status]
         console.print(

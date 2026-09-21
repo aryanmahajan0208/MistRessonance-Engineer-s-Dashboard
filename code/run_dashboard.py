@@ -8,6 +8,7 @@
 """
 
 import cooling_tower_sim as cts
+import filehandler as fh
 from rich.console import Console
 from rich import print as rprint
 from rich.panel import Panel
@@ -57,8 +58,10 @@ def start_program():
         # 1 second buffer so user can read above message comfortably
         time.sleep(1)
 
+        filename = fh.createfile()
+
         # run the simulation loop
-        cts.sim_values(polling_rate)
+        cts.sim_values(polling_rate, filename)
     elif start_event == 'n':
         print("Exiting")
         sys.exit(0)
