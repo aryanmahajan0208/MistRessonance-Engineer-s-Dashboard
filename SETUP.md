@@ -35,6 +35,7 @@ This installs:
 - **`keyboard`** — detects keypresses (used to quit the simulation with `Q`)
 - **`rich`** — styles and formats the dashboard's terminal output (colors,
   panels, layout)
+- **`matplotlib`** — renders graphs for live and analysis views
 
 ## 3. Run the dashboard
 
