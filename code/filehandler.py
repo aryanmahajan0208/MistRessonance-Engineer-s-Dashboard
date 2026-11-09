@@ -35,6 +35,7 @@ def log_reading(filename, reading):
         f"{timestamp},{reading['cwt']:.2f},{reading['hwt']:.2f},"
         f"{reading['fan_status']},{reading['heat_load_kw']:.2f},"
         f"{reading['approach_to_wbt']:.2f},{reading['efficiency']:.2f}\n"
+        f""
     )
 
     with open(filename, "a") as f:

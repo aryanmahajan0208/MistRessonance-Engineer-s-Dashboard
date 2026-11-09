@@ -8,6 +8,7 @@
 """
 
 import filehandler as fh
+import alert_engine as ae
 import random
 import time 
 import keyboard as kb
@@ -20,7 +21,11 @@ console = Console()
 # style lookup for fan status
 status_style = {
     "on": "light_green", 
-    "off": "bright_red"
+    "off": "bright_red",
+    "normal": "dark_olive_green2",
+    "warning": "yellow3",
+    "critical": "red1",
+    "calibrating": "yellow3",
 }
 
 def generate_reading(cwt, hwt, wbt, flow_rate = 20, cp = 1, hwt_mu = 34, theta = 0.15):
@@ -52,7 +57,7 @@ def generate_reading(cwt, hwt, wbt, flow_rate = 20, cp = 1, hwt_mu = 34, theta =
     return {
         "cwt": cwt, "hwt": hwt, "delta_t": delta_t,
         "heat_load_kw": heat_load_kw, "approach_to_wbt": approach_to_wbt,
-        "fan_status": fan_status, "efficiency": efficiency
+        "fan_status": fan_status, "efficiency": efficiency,
     }
 
 
@@ -61,6 +66,7 @@ def sim_values(polling_rate = 1, filename = "None"):
     # initialize cold water temp, hot water temp, wet bulb temp, fan_status, mass flow rate, specific heat
     cwt, hwt, wbt = 30, 34, 28
     fan_status = "on"
+    fan_cost_total = 0
 
     while True:
         # exit condition    
@@ -70,6 +76,15 @@ def sim_values(polling_rate = 1, filename = "None"):
             break
 
         reading = generate_reading(cwt, hwt, wbt)
+
+        if fan_status == "on":
+            fan_cost_iteration = 10 * reading["heat_load_kw"]
+            fan_cost_total += fan_cost_iteration
+        else:
+            fan_cost_iteration = 0
+            fan_cost_total += fan_cost_iteration
+            
+
         cwt, hwt = reading["cwt"], reading["hwt"]
         fan_status = reading["fan_status"] or fan_status  # keep old status if None
         efficiency = reading["efficiency"]
@@ -77,14 +92,24 @@ def sim_values(polling_rate = 1, filename = "None"):
         if filename:
             fh.log_reading(filename, reading)
 
-        style = status_style[fan_status]
+        smoothed_eff = ae.smooth_stream(reading["efficiency"])
+        status = ae.instant_status(smoothed_eff)
+        slope = ae.get_slope()
+        prediction = ae.predict_status(slope)
+
+        fan_color = status_style.get(fan_status, "white")
+        status_color = status_style.get(status, "white")
+
         console.print(
             f"Cold Water: {cwt:.2f} °C,    "
             f"Hot Water: {hwt:.2f} °C,    "
-            f"Fan: [{style}]{fan_status}[/{style}],    "
+            f"Fan: [{fan_color}]{fan_status}[/{fan_color}],    "
             f"Heat load: {reading['heat_load_kw']:.2f} kW,    "
             f"Approach: {reading['approach_to_wbt']:.2f} °C    "
-            f"Efficiency: {efficiency:.2f}%    ",
+            f"Efficiency: {efficiency:.2f}%    "
+            f"Running Cost: ₹{fan_cost_total:.2f}   "
+            f"Status: [{status_color}]{status}[/{status_color}]    "
+            f"Prediction: {prediction}",
             justify = "center"
         )
 

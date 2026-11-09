@@ -19,7 +19,8 @@ def run_graph(polling_rate=1, filename=None, window=25):
     history = {
         "cwt": deque(maxlen=window), 
         "hwt": deque(maxlen=window),
-        "heat_load_kw": deque(maxlen=window)
+        "heat_load_kw": deque(maxlen=window),
+        "efficiency": deque(maxlen=window)
     }
 
     fig, ax = plt.subplots(figsize=(11, 5))
@@ -29,6 +30,7 @@ def run_graph(polling_rate=1, filename=None, window=25):
         reading = cts.generate_reading(cwt, hwt, wbt)
         cwt, hwt = reading["cwt"], reading["hwt"]
         fan_status = reading["fan_status"] or fan_status
+        efficiency = reading["efficiency"]
 
         if filename:
             fh.log_reading(filename, reading)
@@ -36,10 +38,12 @@ def run_graph(polling_rate=1, filename=None, window=25):
         history["cwt"].append(cwt)
         history["hwt"].append(hwt)
         history["heat_load_kw"].append(reading["heat_load_kw"])
+        history["efficiency"].append(efficiency)
 
         ax.clear()
         ax.plot(history["cwt"], label="CWT")
         ax.plot(history["hwt"], label="HWT")
+        ax.plot(history["efficiency"], label="Eff")
         ax.set_title(f"Fan: {fan_status}", color="green" if fan_status == "on" else "red")
         ax.legend()
 
