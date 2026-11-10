@@ -47,16 +47,13 @@ def selectview():
     print("Which view would you like to access? \n")
     rprint("[orange3][T][/orange3]ext view")
     rprint("[plum3][G][/plum3]raph view")
-    rprint("[dark_sea_green2][L][/dark_sea_green2]oad from logfile")
+    rprint("[dark_sea_green2][W][/dark_sea_green2]eb GUI")
     rprint("\n Enter choice: ", end=" ")
 
     choice = input().lower().replace(" ", "")
 
-    if choice in ("t", "g"):
+    if choice in ("t", "g", "w"):
         return choice
-    elif choice == "l":
-        rprint("[bright_yellow]Not available yet: coming soon[/bright_yellow]")
-        return selectview()
     else:
         rprint("[bright_yellow]Invalid input[/bright_yellow]")
         return selectview()
@@ -76,6 +73,20 @@ def start_program():
     if start_event == 'y':
         print("\n")
         view = selectview()
+
+        # Web view has its own in-browser Hz slider and logging triggers
+        if view == "w":
+            import webbrowser
+            import web_dashboard
+
+            rprint("\n[bold cyan]Starting Web Dashboard server...[/bold cyan]")
+            rprint("Opening [dark_sea_green2]http://127.0.0.1:5000[/dark_sea_green2] in your browser.")
+            rprint("Press [magenta1]Ctrl+C[/magenta1] in this terminal at any time to shutdown.\n")
+
+            # Automatically launch browser tab after small delay
+            webbrowser.open("http://127.0.0.1:5000")
+            web_dashboard.app.run(host="127.0.0.1", port=5000, debug=False)
+            return
 
         hz = int(input("Enter polling rate (in Hertz):"))
         polling_rate = abs(1 / hz)

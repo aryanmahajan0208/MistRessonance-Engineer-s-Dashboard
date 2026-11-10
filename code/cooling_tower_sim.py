@@ -107,11 +107,14 @@ def sim_values(polling_rate = 1, filename = "None"):
             f"Heat load: {reading['heat_load_kw']:.2f} kW,    "
             f"Approach: {reading['approach_to_wbt']:.2f} °C    "
             f"Efficiency: {efficiency:.2f}%    "
-            f"Running Cost: ₹{fan_cost_total:.2f}   "
+            f"Running Cost: ₹{fan_cost_total:.2f}   \n"
             f"Status: [{status_color}]{status}[/{status_color}]    "
             f"Prediction: {prediction}",
-            justify = "center"
+            justify = "center",
+            end = "\n"
         )
+
+        print("")
 
         time.sleep(polling_rate)
 

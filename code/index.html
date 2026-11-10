@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mist Ressonance Dashboard v1.0</title>
+  <!-- Chart.js for live arrangement-style telemetry graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      /* Industrial Matte Palette - Zero pure white (#FFFFFF) or pure black (#000000) */
+      --bg-canvas: #1E2229;
+      --bg-panel: #282C34;
+      --bg-surface: #323842;
+      --bg-slot: #181B20;
+      --border-line: #3E4452;
+      --text-main: #DCE0E6;
+      --text-muted: #8B929E;
+
+      /* Exact Rich Terminal Color Hex Mappings */
+      --cyan-title: #00FFFF;          /* bold cyan */
+      --fan-on: #87FF87;              /* light_green */
+      --confirm-green: #00FF00;       /* bright_green */
+      --fan-off-crit: #FF0000;        /* bright_red / red1 */
+      --status-normal: #AFFF5F;       /* dark_olive_green2 */
+      --status-warn: #D7AF00;         /* yellow3 */
+      --tab-text-orange: #D78700;     /* orange3 */
+      --tab-graph-plum: #D787D7;      /* plum3 */
+      --tab-log-seagre: #AFFFAF;      /* dark_sea_green2 */
+      --exit-magenta: #FF00FF;        /* magenta1 */
+      --alert-yellow: #FFFF00;        /* bright_yellow */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      font-family: "JetBrains Mono", "Consolas", "SFMono-Regular", monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ================= TOP TRANSPORT BAR (ABLETON STYLE) ================= */
+    .top-bar {
+      height: 58px;
+      background-color: var(--bg-panel);
+      border-bottom: 2px solid var(--border-line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      color: var(--cyan-title);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      background: var(--bg-slot);
+      border: 1px solid var(--cyan-title);
+      border-radius: 3px;
+    }
+
+    .brand-sub {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    .transport-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-slot);
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border-line);
+    }
+
+    .btn-transport {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-line);
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.12s ease;
+    }
+
+    .btn-transport:hover {
+      filter: brightness(1.15);
+    }
+
+    .btn-transport.active-run {
+      background: rgba(135, 255, 135, 0.16);
+      color: var(--fan-on);
+      border-color: var(--fan-on);
+      box-shadow: 0 0 8px rgba(135, 255, 135, 0.25);
+    }
+
+    .btn-transport.stop-btn:hover {
+      border-color: var(--exit-magenta);
+      color: var(--exit-magenta);
+    }
+
+    .hz-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: 8px;
+      border-left: 1px solid var(--border-line);
+      font-size: 0.82rem;
+    }
+
+    .hz-input {
+      width: 58px;
+      background: var(--bg-panel);
+      color: var(--cyan-title);
+      border: 1px solid var(--border-line);
+      padding: 4px 6px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-align: center;
+      border-radius: 3px;
+    }
+
+    .placeholder-slots {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slot-pill {
+      background: var(--bg-slot);
+      color: var(--text-muted);
+      border: 1px dashed var(--border-line);
+      padding: 5px 11px;
+      font-size: 0.75rem;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ================= VIEW SWITCHER SUB-BAR ================= */
+    .view-bar {
+      height: 44px;
+      background: var(--bg-canvas);
+      border-bottom: 1px solid var(--border-line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      flex-shrink: 0;
+    }
+
+    .view-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      background: var(--bg-panel);
+      color: var(--text-muted);
+      border: 1px solid var(--border-line);
+      padding: 6px 16px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.12s ease;
+    }
+
+    .tab-btn.active-text {
+      color: var(--tab-text-orange);
+      border-color: var(--tab-text-orange);
+      background: rgba(215, 135, 0, 0.12);
+    }
+
+    .tab-btn.active-graph {
+      color: var(--tab-graph-plum);
+      border-color: var(--tab-graph-plum);
+      background: rgba(215, 135, 215, 0.12);
+    }
+
+    .tab-btn.active-log {
+      color: var(--tab-log-seagre);
+      border-color: var(--tab-log-seagre);
+      background: rgba(175, 255, 175, 0.12);
+    }
+
+    .unit-notice {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    /* ================= MAIN ARRANGEMENT WORKSPACE ================= */
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 18px;
+      overflow: hidden;
+      gap: 12px;
+    }
+
+    /* Live Secondary KPI Mini-Strip */
+    .kpi-ribbon {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .kpi-tile {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-line);
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kpi-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .kpi-val {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-top: 3px;
+      color: var(--text-main);
+    }
+
+    /* Views Container */
+    .view-pane {
+      flex: 1;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-line);
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+    }
+
+    .view-pane.active {
+      display: flex;
+    }
+
+    /* ---- TEXT VIEW (Terminal Feed Mirror) ---- */
+    .terminal-header {
+      background: var(--bg-slot);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border-line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .terminal-stream {
+      flex: 1;
+      padding: 12px 16px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      background: var(--bg-slot);
+      user-select: text;
+    }
+
+    .stream-entry {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: var(--bg-panel);
+      border-left: 3px solid var(--border-line);
+      border-radius: 2px;
+      text-align: center;
+    }
+
+    /* ---- GRAPH VIEW (Ableton Arrangement Tracks) ---- */
+    .graph-header {
+      background: var(--bg-slot);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border-line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .graph-tracks {
+      flex: 1;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    .track-lane {
+      background: var(--bg-slot);
+      border: 1px solid var(--border-line);
+      border-radius: 3px;
+      padding: 8px 12px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .track-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .canvas-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+    }
+
+    /* ---- LOGFILE LOADER VIEW ---- */
+    .log-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      overflow: hidden;
+    }
+
+    .log-sidebar {
+      background: var(--bg-slot);
+      border-right: 1px solid var(--border-line);
+      padding: 12px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      padding: 8px 10px;
+      border: 1px solid var(--border-line);
+      background: var(--bg-panel);
+      margin-bottom: 6px;
+      border-radius: 3px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+
+    .log-item:hover, .log-item.selected {
+      border-color: var(--tab-log-seagre);
+      color: var(--tab-log-seagre);
+    }
+
+    .log-content {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    /* ================= BOTTOM MASTER STRIP (ABLETON HERO BAR) ================= */
+    .bottom-strip {
+      height: 92px;
+      background-color: var(--bg-panel);
+      border-top: 2px solid var(--border-line);
+      display: grid;
+      grid-template-columns: 1.3fr 1.2fr 1.1fr;
+      padding: 10px 20px;
+      gap: 18px;
+      flex-shrink: 0;
+    }
+
+    .master-module {
+      background: var(--bg-slot);
+      border: 1px solid var(--border-line);
+      border-radius: 4px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .hero-title {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .hero-Sub {
+      font-size: 0.78rem;
+      color: var(--cyan-title);
+    }
+
+    .hero-value {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    /* Status Beacon Light */
+    .beacon-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-lamp {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background-color: var(--status-warn);
+      border: 2px solid var(--border-line);
+      box-shadow: 0 0 14px var(--status-warn);
+      transition: all 0.2s ease;
+    }
+
+    .status-text-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .status-state {
+      font-size: 1.2rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .fan-pill {
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      border: 1px solid var(--border-line);
+    }
+
+    .cost-value {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .log-badge {
+      font-size: 0.72rem;
+      color: var(--tab-log-seagre);
+      margin-top: 3px;
+    }
+
+    /* ================= EXTREME HZ MODAL (>20Hz Check) ================= */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(24, 27, 32, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal-card {
+      background: var(--bg-panel);
+      border: 2px solid var(--alert-yellow);
+      border-radius: 4px;
+      padding: 22px 26px;
+      max-width: 440px;
+      text-align: center;
+    }
+
+    .modal-warn-text {
+      color: var(--alert-yellow);
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      line-height: 1.4;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .btn-yes {
+      background: var(--bg-slot);
+      color: var(--confirm-green);
+      border: 1px solid var(--confirm-green);
+      padding: 7px 22px;
+      font-family: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-no {
+      background: var(--bg-slot);
+      color: var(--fan-off-crit);
+      border: 1px solid var(--fan-off-crit);
+      padding: 7px 22px;
+      font-family: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= TOP TRANSPORT BAR ================= -->
+  <header class="top-bar">
+    <div class="brand-group">
+      <div class="brand-title">MIST RESSONANCE</div>
+      <span class="brand-sub">v1.0 // TELEMETRY ENGINE</span>
+    </div>
+
+    <div class="transport-controls">
+      <button id="btnStart" class="btn-transport" onclick="handleStartClick()">▶ START</button>
+      <button id="btnStop" class="btn-transport stop-btn" onclick="stopSimulation()">■ STOP [Q]</button>
+      <button class="btn-transport" onclick="resetSimulation()">↺ RESET</button>
+      <div class="hz-box">
+        <label for="hzInput">POLL RATE (Hz):</label>
+        <input id="hzInput" type="number" min="1" max="60" value="1" class="hz-input" onchange="handleHzChange()" />
+      </div>
+    </div>
+
+    <!-- Placeholder options for future expansion -->
+    <div class="placeholder-slots">
+      <div class="slot-pill">[WBT: 28.0 °C]</div>
+      <div class="slot-pill">[FLOW: 20 L/s]</div>
+      <div class="slot-pill">[OPTS: PLACEHOLDER]</div>
+    </div>
+  </header>
+
+  <!-- ================= VIEW SWITCHER BAR ================= -->
+  <div class="view-bar">
+    <div class="view-tabs">
+      <button id="tabText" class="tab-btn active-text" onclick="switchView('text')">[T] TEXT VIEW</button>
+      <button id="tabGraph" class="tab-btn" onclick="switchView('graph')">[G] GRAPH VIEW</button>
+      <button id="tabLog" class="tab-btn" onclick="switchView('log')">[L] LOAD FROM LOGFILE</button>
+    </div>
+    <div class="unit-notice">
+      All temperatures in °C &nbsp;|&nbsp; Heat Load in kilowatts (kW) &nbsp;|&nbsp; Shortcuts: [T] Text, [G] Graph, [Q] Stop
+    </div>
+  </div>
+
+  <!-- ================= MAIN WORKSPACE ================= -->
+  <main class="workspace">
+    <!-- Secondary KPI Strip -->
+    <div class="kpi-ribbon">
+      <div class="kpi-tile">
+        <span class="kpi-label">Cold Water (CWT)</span>
+        <span id="kpiCwt" class="kpi-val">30.00 °C</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-label">Hot Water (HWT)</span>
+        <span id="kpiHwt" class="kpi-val">34.00 °C</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-label">Cooling Range (ΔT)</span>
+        <span id="kpiDelta" class="kpi-val">4.00 °C</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-label">Approach to WBT</span>
+        <span id="kpiApproach" class="kpi-val">2.00 °C</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-label">Heat Load</span>
+        <span id="kpiHeatLoad" class="kpi-val">0.33 kW</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-label">25-Frame Slope</span>
+        <span id="kpiSlope" class="kpi-val">0.000</span>
+      </div>
+    </div>
+
+    <!-- 1. TEXT VIEW PANE -->
+    <section id="paneText" class="view-pane active">
+      <div class="terminal-header">
+        <span>LIVE TELEMETRY CONSOLE STREAM (RICH PARITY MODE)</span>
+        <span id="stepCounter">Readings: 0</span>
+      </div>
+      <div id="terminalStream" class="terminal-stream"></div>
+    </section>
+
+    <!-- 2. GRAPH VIEW PANE -->
+    <section id="paneGraph" class="view-pane">
+      <div class="graph-header">
+        <span>ROLLING GRAPH MODE</span> 
+        <span id="graphFanTitle" style="color: var(--fan-on);">Fan: on</span>
+      </div>
+      <div class="graph-tracks">
+        <div class="track-lane">
+          <div class="track-label">Track 01 // Thermal Profile (CWT & HWT °C)</div>
+          <div class="canvas-wrap">
+            <canvas id="tempChart"></canvas>
+          </div>
+        </div>
+        <div class="track-lane">
+          <div class="track-label">Track 02 // Tower Efficiency (%) & Smoothed Average</div>
+          <div class="canvas-wrap">
+            <canvas id="effChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. LOGFILE VIEWER PANE -->
+    <section id="paneLog" class="view-pane">
+      <div class="log-layout">
+        <div class="log-sidebar">
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">SAVED LOG FILES (/logs)</div>
+          <div id="logFileList"></div>
+        </div>
+        <div class="log-content">
+          <div id="logMetaHeader" style="font-size:0.85rem; color:var(--tab-log-seagre);">
+            Select a logfile from the left sidebar to inspect historical session telemetry.
+          </div>
+          <div class="track-lane" style="flex:1; min-height: 260px;">
+            <div class="track-label">Historical Session Replay (CWT, HWT & Efficiency)</div>
+            <div class="canvas-wrap">
+              <canvas id="logChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= BOTTOM HERO MASTER STRIP ================= -->
+  <footer class="bottom-strip">
+    <!-- Module 1: Hero Efficiency Metric -->
+    <div class="master-module">
+      <div class="hero-left">
+        <span class="hero-title">TOWER EFFICIENCY</span>
+        <span id="predLabel" class="hero-Sub">Prediction: calibrating...</span>
+        <span style="font-size: 0.72rem; color: var(--text-muted);">Smoothed (25f): <strong id="smoothedVal">--%</strong></span>
+      </div>
+      <div id="heroEff" class="hero-value">0.00%</div>
+    </div>
+
+    <!-- Module 2: Instantaneous Status Light & Fan Indicator -->
+    <div class="master-module">
+      <div class="beacon-group">
+        <div id="statusLamp" class="status-lamp"></div>
+        <div class="status-text-block">
+          <span class="hero-title">INSTANTANEOUS STATUS</span>
+          <span id="statusText" class="status-state" style="color: var(--status-warn);">CALIBRATING</span>
+        </div>
+      </div>
+      <div>
+        <div id="fanBadge" class="fan-pill" style="color: var(--fan-on); border-color: var(--fan-on);">
+          FAN: ON
+        </div>
+      </div>
+    </div>
+
+    <!-- Module 3: Running Cost & Active Logfile -->
+    <div class="master-module">
+      <div class="hero-left">
+        <span class="hero-title">ACCUMULATED RUNNING COST</span>
+        <span id="logFileBadge" class="log-badge">Log: Not started</span>
+      </div>
+      <div id="heroCost" class="cost-value">₹0.00</div>
+    </div>
+  </footer>
+
+  <!-- ================= EXTREME HZ CONFIRMATION MODAL ================= -->
+  <div id="hzModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-warn-text">
+        Extreme value selected (&gt;20 Hz), are you sure you wish to continue?
+      </div>
+      <div class="modal-actions">
+        <button class="btn-yes" onclick="confirmExtremeHz(true)">[Y] YES</button>
+        <button class="btn-no" onclick="confirmExtremeHz(false)">[N] NO</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Exact Hex Palette from Rich Terminal Code
+    const COLORS = {
+      on: "#87FF87",          // light_green
+      off: "#FF0000",         // bright_red
+      normal: "#AFFF5F",      // dark_olive_green2
+      warning: "#D7AF00",     // yellow3
+      critical: "#FF0000",    // red1
+      calibrating: "#D7AF00", // yellow3
+      cyan: "#00FFFF",
+      orange: "#D78700",
+      plum: "#D787D7",
+      text: "#DCE0E6",
+      grid: "#323842"
+    };
+
+    const WINDOW_SIZE = 25;
+    let simTimer = null;
+    let isRunning = false;
+    let currentHz = 1;
+    let pendingHz = 1;
+
+    // Chart.js instances
+    let tempChart, effChart, logChart;
+
+    function initCharts() {
+      const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: {
+            labels: { color: COLORS.text, font: { family: "JetBrains Mono", size: 11 } }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "#8B929E", maxTicksLimit: 10 },
+            grid: { color: COLORS.grid }
+          },
+          y: {
+            ticks: { color: "#8B929E" },
+            grid: { color: COLORS.grid }
+          }
+        }
+      };
+
+      tempChart = new Chart(document.getElementById("tempChart"), {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            { label: "CWT (°C)", data: [], borderColor: COLORS.cyan, borderWidth: 2, tension: 0.2, pointRadius: 2 },
+            { label: "HWT (°C)", data: [], borderColor: COLORS.orange, borderWidth: 2, tension: 0.2, pointRadius: 2 }
+          ]
+        },
+        options: commonOptions
+      });
+
+      effChart = new Chart(document.getElementById("effChart"), {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            { label: "Raw Efficiency (%)", data: [], borderColor: COLORS.plum, borderWidth: 2, tension: 0.2, pointRadius: 2 },
+            { label: "Smoothed (25f %)", data: [], borderColor: COLORS.normal, borderWidth: 2, borderDash: [4, 4], tension: 0.2, pointRadius: 0 }
+          ]
+        },
+        options: commonOptions
+      });
+
+      logChart = new Chart(document.getElementById("logChart"), {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            { label: "CWT (°C)", data: [], borderColor: COLORS.cyan, borderWidth: 2, pointRadius: 1 },
+            { label: "HWT (°C)", data: [], borderColor: COLORS.orange, borderWidth: 2, pointRadius: 1 },
+            { label: "Efficiency (%)", data: [], borderColor: COLORS.plum, borderWidth: 2, pointRadius: 1 }
+          ]
+        },
+        options: commonOptions
+      });
+    }
+
+    // View Switching (Text / Graph / Logfile) on the fly
+    function switchView(view) {
+      document.getElementById("paneText").classList.toggle("active", view === "text");
+      document.getElementById("paneGraph").classList.toggle("active", view === "graph");
+      document.getElementById("paneLog").classList.toggle("active", view === "log");
+
+      document.getElementById("tabText").className = "tab-btn" + (view === "text" ? " active-text" : "");
+      document.getElementById("tabGraph").className = "tab-btn" + (view === "graph" ? " active-graph" : "");
+      document.getElementById("tabLog").className = "tab-btn" + (view === "log" ? " active-log" : "");
+
+      if (view === "log") {
+        fetchLogList();
+      }
+    }
+
+    // Verify >20Hz input exactly like run_dashboard.py verify_input(hz)
+    function handleHzChange() {
+      const val = parseFloat(document.getElementById("hzInput").value) || 1;
+      if (val > 20) {
+        pendingHz = val;
+        document.getElementById("hzModal").style.display = "flex";
+      } else {
+        applyHz(Math.max(0.5, val));
+      }
+    }
+
+    function confirmExtremeHz(confirmed) {
+      document.getElementById("hzModal").style.display = "none";
+      if (confirmed) {
+        applyHz(pendingHz);
+      } else {
+        document.getElementById("hzInput").value = currentHz;
+      }
+    }
+
+    function applyHz(hz) {
+      currentHz = hz;
+      if (isRunning) {
+        clearInterval(simTimer);
+        simTimer = setInterval(fetchTick, Math.abs(1000 / currentHz));
+      }
+    }
+
+    async function handleStartClick() {
+      if (isRunning) return;
+      const hzVal = parseFloat(document.getElementById("hzInput").value) || 1;
+      if (hzVal > 20 && currentHz <= 20) {
+        pendingHz = hzVal;
+        document.getElementById("hzModal").style.display = "flex";
+        return;
+      }
+      await startSimulation();
+    }
+
+    async function startSimulation() {
+      await fetch("/api/start", { method: "POST" });
+      isRunning = true;
+      document.getElementById("btnStart").classList.add("active-run");
+      document.getElementById("btnStart").innerText = "● RUNNING";
+      fetchTick();
+      simTimer = setInterval(fetchTick, Math.abs(1000 / currentHz));
+    }
+
+    function stopSimulation() {
+      if (!isRunning) return;
+      clearInterval(simTimer);
+      simTimer = null;
+      isRunning = false;
+      document.getElementById("btnStart").classList.remove("active-run");
+      document.getElementById("btnStart").innerText = "▶ START";
+
+      const stream = document.getElementById("terminalStream");
+      const stopNotice = document.createElement("div");
+      stopNotice.className = "stream-entry";
+      stopNotice.style.borderLeftColor = "#FF00FF";
+      stopNotice.style.color = "#FF00FF";
+      stopNotice.innerText = "Simulation paused / stopped by operator [Q]";
+      stream.prepend(stopNotice);
+    }
+
+    async function resetSimulation() {
+      stopSimulation();
+      await fetch("/api/reset", { method: "POST" });
+      document.getElementById("terminalStream").innerHTML = "";
+      tempChart.data.labels = [];
+      tempChart.data.datasets.forEach(d => d.data = []);
+      tempChart.update();
+
+      effChart.data.labels = [];
+      effChart.data.datasets.forEach(d => d.data = []);
+      effChart.update();
+
+      document.getElementById("heroEff").innerText = "0.00%";
+      document.getElementById("heroCost").innerText = "₹0.00";
+      document.getElementById("stepCounter").innerText = "Readings: 0";
+    }
+
+    async function fetchTick() {
+      try {
+        const res = await fetch("/api/tick");
+        const d = await res.json();
+        updateUI(d);
+      } catch (err) {
+        console.error("Telemetry tick error:", err);
+      }
+    }
+
+    function updateUI(d) {
+      const fanColor = COLORS[d.fan_status] || COLORS.text;
+      const statusColor = COLORS[d.status] || COLORS.text;
+
+      // Top KPI Ribbon
+      document.getElementById("kpiCwt").innerText = `${d.cwt.toFixed(2)} °C`;
+      document.getElementById("kpiHwt").innerText = `${d.hwt.toFixed(2)} °C`;
+      document.getElementById("kpiDelta").innerText = `${d.delta_t.toFixed(2)} °C`;
+      document.getElementById("kpiApproach").innerText = `${d.approach_to_wbt.toFixed(2)} °C`;
+      document.getElementById("kpiHeatLoad").innerText = `${d.heat_load_kw.toFixed(2)} kW`;
+      document.getElementById("kpiSlope").innerText = d.slope.toFixed(3);
+      document.getElementById("stepCounter").innerText = `Readings: ${d.step_count}`;
+
+      // Bottom Master Strip
+      document.getElementById("heroEff").innerText = `${d.efficiency.toFixed(2)}%`;
+      document.getElementById("heroEff").style.color = statusColor;
+      document.getElementById("smoothedVal").innerText = `${d.smoothed_efficiency.toFixed(2)}%`;
+      document.getElementById("predLabel").innerText = `Prediction: ${d.prediction}`;
+
+      const lamp = document.getElementById("statusLamp");
+      lamp.style.backgroundColor = statusColor;
+      lamp.style.boxShadow = `0 0 14px ${statusColor}`;
+
+      const statusText = document.getElementById("statusText");
+      statusText.innerText = d.status.toUpperCase();
+      statusText.style.color = statusColor;
+
+      const fanBadge = document.getElementById("fanBadge");
+      fanBadge.innerText = `FAN: ${d.fan_status.toUpperCase()}`;
+      fanBadge.style.color = fanColor;
+      fanBadge.style.borderColor = fanColor;
+
+      document.getElementById("heroCost").innerText = `₹${d.fan_cost_total.toFixed(2)}`;
+      document.getElementById("logFileBadge").innerText = `Log: ${d.filename}`;
+
+      // Append to Text View (matches cooling_tower_sim.py console.print layout)
+      const stream = document.getElementById("terminalStream");
+      const entry = document.createElement("div");
+      entry.className = "stream-entry";
+      entry.style.borderLeftColor = statusColor;
+      entry.innerHTML = `
+        <div>
+          Cold Water: <strong>${d.cwt.toFixed(2)} °C</strong>, &nbsp;&nbsp;
+          Hot Water: <strong>${d.hwt.toFixed(2)} °C</strong>, &nbsp;&nbsp;
+          Fan: <strong style="color:${fanColor}">${d.fan_status}</strong>, &nbsp;&nbsp;
+          Heat load: <strong>${d.heat_load_kw.toFixed(2)} kW</strong>, &nbsp;&nbsp;
+          Approach: <strong>${d.approach_to_wbt.toFixed(2)} °C</strong>, &nbsp;&nbsp;
+          Efficiency: <strong>${d.efficiency.toFixed(2)}%</strong>, &nbsp;&nbsp;
+          Running Cost: <strong>₹${d.fan_cost_total.toFixed(2)}</strong>
+        </div>
+        <div style="margin-top:4px;">
+          Status: <strong style="color:${statusColor}">${d.status}</strong> &nbsp;&nbsp;&nbsp;&nbsp;
+          Prediction: <strong>${d.prediction}</strong>
+        </div>
+      `;
+      stream.prepend(entry);
+      while (stream.children.length > 50) {
+        stream.removeChild(stream.lastChild);
+      }
+
+      // Update Live Graphs (Rolling 25-frame deque equivalent)
+      const graphFanTitle = document.getElementById("graphFanTitle");
+      graphFanTitle.innerText = `Fan: ${d.fan_status}`;
+      graphFanTitle.style.color = fanColor;
+
+      tempChart.data.labels.push(d.timestamp);
+      tempChart.data.datasets[0].data.push(d.cwt);
+      tempChart.data.datasets[1].data.push(d.hwt);
+      if (tempChart.data.labels.length > WINDOW_SIZE) {
+        tempChart.data.labels.shift();
+        tempChart.data.datasets.forEach(ds => ds.data.shift());
+      }
+      tempChart.update();
+
+      effChart.data.labels.push(d.timestamp);
+      effChart.data.datasets[0].data.push(d.efficiency);
+      effChart.data.datasets[1].data.push(d.smoothed_efficiency);
+      if (effChart.data.labels.length > WINDOW_SIZE) {
+        effChart.data.labels.shift();
+        effChart.data.datasets.forEach(ds => ds.data.shift());
+      }
+      effChart.update();
+    }
+
+    // Historical Logfile Browser (Implements Option 'L' from run_dashboard.py)
+    async function fetchLogList() {
+      const res = await fetch("/api/logs");
+      const data = await res.json();
+      const container = document.getElementById("logFileList");
+      container.innerHTML = "";
+      if (!data.files.length) {
+        container.innerHTML = `<div style="font-size:0.75rem; color:var(--text-muted);">No logfiles found yet. Start a simulation first.</div>`;
+        return;
+      }
+      data.files.forEach(file => {
+        const div = document.createElement("div");
+        div.className = "log-item";
+        div.innerText = file;
+        div.onclick = () => loadLogFile(file, div);
+        container.appendChild(div);
+      });
+    }
+
+    async function loadLogFile(filename, el) {
+      document.querySelectorAll(".log-item").forEach(i => i.classList.remove("selected"));
+      el.classList.add("selected");
+
+      const res = await fetch(`/api/logs/${filename}`);
+      const data = await res.json();
+      document.getElementById("logMetaHeader").innerText =
+        `File: logs/${data.filename}  |  Run Time: ${data.run_time}  |  Total Samples: ${data.records.length}`;
+
+      logChart.data.labels = data.records.map(r => r.timestamp.split(" ")[1] || r.timestamp);
+      logChart.data.datasets[0].data = data.records.map(r => r.cwt);
+      logChart.data.datasets[1].data = data.records.map(r => r.hwt);
+      logChart.data.datasets[2].data = data.records.map(r => r.efficiency);
+      logChart.update();
+    }
+
+    // Keyboard shortcuts matching your CLI (Q = Stop, T = Text View, G = Graph View, L = Log View)
+    window.addEventListener("keydown", (e) => {
+      if (document.activeElement.tagName === "INPUT") return;
+      const key = e.key.toLowerCase();
+      if (key === "q") stopSimulation();
+      if (key === "t") switchView("text");
+      if (key === "g") switchView("graph");
+      if (key === "l") switchView("log");
+    });
+
+    window.addEventListener("DOMContentLoaded", initCharts);
+  </script>
+</body>
+</html>
